@@ -77,9 +77,13 @@
     "vite": "^8.0.0"
   },
   "peerDependencies": {
-    "@nestjs/common": "^12.0.0",
     "@nestjs/swagger": "^12.0.0",
     "zod": "^4.5.0"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/swagger": {
+      "optional": true
+    }
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

@@ -3,53 +3,53 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+        pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
 permissions:
+  id-token: write # Required for OIDC
   contents: read
-  id-token: write
 
 jobs:
-  publish:
-    if: github.repository == 'ymshenyu/nestjs-zod' && !github.event.release.prerelease
+  publish-npm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-          cache: pnpm
+          cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: pnpm --filter @ymshenyu/nestjs-zod build
+      - run: pnpm --filter @ymshenyu/nestjs-zod test
       - run: pnpm --filter @ymshenyu/nestjs-zod typecheck
-      - name: Prepare npm package
+      - run: pnpm --filter example-star-wars build
+      - run: pnpm --filter example-star-wars test
+      - run: pnpm --filter example-swc build
+      - name: Set version and copy docs
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
         run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "Expected a stable release tag in the form vX.Y.Z"
-            exit 1
-          fi
-          npm install --global npm@^11.15.0
           cp README.md LICENSE packages/nestjs-zod/
           cd packages/nestjs-zod
-          npm version "$RELEASE_TAG" --allow-same-version --no-git-tag-version --ignore-scripts
-          npm pack --dry-run
-      - name: Stage the first npm release
-        if: github.event.release.tag_name == 'v1.0.0'
+          npm version "$RELEASE_VERSION" --allow-same-version --no-git-tag-version --ignore-scripts
+      - name: Publish to npm
         working-directory: packages/nestjs-zod
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_STAGE_TOKEN }}
+          NPM_STAGE_TOKEN: ${{ secrets.NPM_STAGE_TOKEN }}
         run: |
-          if [[ -z "$NODE_AUTH_TOKEN" ]]; then
-            echo "Add the NPM_STAGE_TOKEN Actions secret to stage the first release"
-            exit 1
+          if [[ -n "$NPM_STAGE_TOKEN" ]]; then
+            npm install --global npm@^11.15.0
+            NODE_AUTH_TOKEN="$NPM_STAGE_TOKEN" npm stage publish --access public
+          else
+            npm publish --access public
           fi
-          npm stage publish --access public
-      - name: Publish to npm with OIDC
-        if: github.event.release.tag_name != 'v1.0.0'
-        working-directory: packages/nestjs-zod
-        run: npm publish --access public

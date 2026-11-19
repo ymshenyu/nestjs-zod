@@ -14,7 +14,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "vitest run src",
+    "test": "playwright test",
     "test:swagger": "playwright test"
   },
   "dependencies": {
@@ -50,8 +50,6 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.67.0",
-    "vitest": "^4.1.12",
-    "vite": "^8.0.0"
+    "typescript-eslint": "^8.67.0"
   }
 }

@@ -1,7 +1,5 @@
 import { Controller, Get, Post, Body, Query, Param, NotFoundException, BadRequestException } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { z } from 'zod';
-import type { SchemaObject } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CreatePersonFormDto, PersonDto, PersonListDto, PersonFilterDto, Person, GetPersonParams, GetPersonResponse } from './people.dto';
 
 @ApiTags('People')
@@ -63,7 +61,6 @@ export class PeopleController {
 
   @Get()
   @ApiOkResponse({ type: PersonListDto, description: 'List of all people' })
-  @ApiQuery({ name: 'filter', required: false, schema: z.toJSONSchema(PersonFilterDto.schema.shape.filter, { target: 'openapi-3.0', io: 'input' }) as SchemaObject })
   getPeople(@Query() input: PersonFilterDto) {
     const result = PersonFilterDto.schema.safeParse(input);
     if (!result.success) throw new BadRequestException(result.error.issues);
@@ -75,9 +72,8 @@ export class PeopleController {
 
   @Get(':id')
   @ApiOkResponse({ type: GetPersonResponse, description: 'A person' })
-  @ApiParam({ name: 'id', type: String })
-  getPerson(@Param('id') rawId: string) {
-    const { id } = GetPersonParams.create({ id: rawId });
+  getPerson(@Param() params: GetPersonParams) {
+    const { id } = GetPersonParams.create(params);
     const person = this.mockPeople.find(person => person.id === id);
     if (!person) {
       throw new NotFoundException('Person not found');

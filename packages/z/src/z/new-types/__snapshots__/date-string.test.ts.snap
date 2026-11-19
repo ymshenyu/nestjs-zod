@@ -1,6 +1,6 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`dateString > day-type should override previous day-type 1`] = `
+exports[`dateString day-type should override previous day-type 1`] = `
 [
   {
     "code": "custom",
@@ -15,7 +15,7 @@ exports[`dateString > day-type should override previous day-type 1`] = `
 ]
 `;
 
-exports[`dateString > day-type should override previous day-type 2`] = `
+exports[`dateString day-type should override previous day-type 2`] = `
 [
   {
     "code": "custom",
@@ -30,7 +30,7 @@ exports[`dateString > day-type should override previous day-type 2`] = `
 ]
 `;
 
-exports[`dateString > day-type should override previous day-type 3`] = `
+exports[`dateString day-type should override previous day-type 3`] = `
 [
   {
     "code": "custom",
@@ -45,7 +45,7 @@ exports[`dateString > day-type should override previous day-type 3`] = `
 ]
 `;
 
-exports[`dateString > day-type should override previous day-type 4`] = `
+exports[`dateString day-type should override previous day-type 4`] = `
 [
   {
     "code": "custom",
@@ -60,7 +60,7 @@ exports[`dateString > day-type should override previous day-type 4`] = `
 ]
 `;
 
-exports[`dateString > day-type should override previous day-type 5`] = `
+exports[`dateString day-type should override previous day-type 5`] = `
 [
   {
     "code": "custom",
@@ -75,7 +75,7 @@ exports[`dateString > day-type should override previous day-type 5`] = `
 ]
 `;
 
-exports[`dateString > should validate date 1`] = `
+exports[`dateString should validate date 1`] = `
 [
   {
     "code": "custom",
@@ -89,7 +89,7 @@ exports[`dateString > should validate date 1`] = `
 ]
 `;
 
-exports[`dateString > should validate default format 1`] = `
+exports[`dateString should validate default format 1`] = `
 [
   {
     "code": "custom",
@@ -104,7 +104,7 @@ exports[`dateString > should validate default format 1`] = `
 ]
 `;
 
-exports[`dateString > should validate direction 1`] = `
+exports[`dateString should validate direction 1`] = `
 [
   {
     "code": "custom",
@@ -119,7 +119,7 @@ exports[`dateString > should validate direction 1`] = `
 ]
 `;
 
-exports[`dateString > should validate direction 2`] = `
+exports[`dateString should validate direction 2`] = `
 [
   {
     "code": "custom",
@@ -134,7 +134,7 @@ exports[`dateString > should validate direction 2`] = `
 ]
 `;
 
-exports[`dateString > should validate min/max year 1`] = `
+exports[`dateString should validate min/max year 1`] = `
 [
   {
     "code": "too_small",
@@ -147,7 +147,7 @@ exports[`dateString > should validate min/max year 1`] = `
 ]
 `;
 
-exports[`dateString > should validate min/max year 2`] = `
+exports[`dateString should validate min/max year 2`] = `
 [
   {
     "code": "too_big",
@@ -160,7 +160,7 @@ exports[`dateString > should validate min/max year 2`] = `
 ]
 `;
 
-exports[`dateString > should validate specified format 1`] = `
+exports[`dateString should validate specified format 1`] = `
 [
   {
     "code": "custom",
@@ -175,7 +175,7 @@ exports[`dateString > should validate specified format 1`] = `
 ]
 `;
 
-exports[`dateString > should validate specified format 2`] = `
+exports[`dateString should validate specified format 2`] = `
 [
   {
     "code": "custom",
@@ -190,7 +190,7 @@ exports[`dateString > should validate specified format 2`] = `
 ]
 `;
 
-exports[`dateString > should validate type 1`] = `
+exports[`dateString should validate type 1`] = `
 [
   {
     "code": "invalid_type",
@@ -202,7 +202,7 @@ exports[`dateString > should validate type 1`] = `
 ]
 `;
 
-exports[`dateString > should validate type 2`] = `
+exports[`dateString should validate type 2`] = `
 [
   {
     "code": "invalid_type",
@@ -214,7 +214,7 @@ exports[`dateString > should validate type 2`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 1`] = `
+exports[`dateString should validate week days 1`] = `
 [
   {
     "code": "custom",
@@ -229,7 +229,7 @@ exports[`dateString > should validate week days 1`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 2`] = `
+exports[`dateString should validate week days 2`] = `
 [
   {
     "code": "custom",
@@ -244,7 +244,7 @@ exports[`dateString > should validate week days 2`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 3`] = `
+exports[`dateString should validate week days 3`] = `
 [
   {
     "code": "custom",
@@ -259,7 +259,7 @@ exports[`dateString > should validate week days 3`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 4`] = `
+exports[`dateString should validate week days 4`] = `
 [
   {
     "code": "custom",
@@ -274,7 +274,7 @@ exports[`dateString > should validate week days 4`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 5`] = `
+exports[`dateString should validate week days 5`] = `
 [
   {
     "code": "custom",
@@ -289,7 +289,7 @@ exports[`dateString > should validate week days 5`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 6`] = `
+exports[`dateString should validate week days 6`] = `
 [
   {
     "code": "custom",
@@ -304,7 +304,7 @@ exports[`dateString > should validate week days 6`] = `
 ]
 `;
 
-exports[`dateString > should validate week days 7`] = `
+exports[`dateString should validate week days 7`] = `
 [
   {
     "code": "custom",

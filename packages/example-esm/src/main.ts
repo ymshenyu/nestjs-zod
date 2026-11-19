@@ -1,3 +1,4 @@
+import { cleanupOpenApiDoc } from '@ymshenyu/nestjs-zod';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -15,7 +16,7 @@ async function bootstrap() {
       .build(),
   );
 
-  SwaggerModule.setup('api', app, openApiDoc);
+  SwaggerModule.setup('api', app, cleanupOpenApiDoc(openApiDoc));
   await app.listen(process.env.PORT ?? 3002);
 }
 bootstrap();
