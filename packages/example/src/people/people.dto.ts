@@ -1,4 +1,4 @@
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto } from '@ymshenyu/nestjs-zod';
 import { z } from 'zod';
 import { stringToDate } from '../codecs';
 
@@ -18,25 +18,23 @@ export class PersonDto extends createZodDto(z.object({
   speciesIds: z.array(z.string()).describe('Array of species IDs'),
   vehicleIds: z.array(z.string()).describe('Array of vehicle IDs'),
   starshipIds: z.array(z.string()).describe('Array of starship IDs'),
-}).meta({ id: 'Person' }), { codec: true }) {}
+}).meta({ id: 'Person' })) {}
 
 export class CreatePersonFormDto extends createZodDto(
   PersonDto.schema.omit({ id: true, created: true }).meta({ id: 'CreatePersonFormDto' })
-, {
-  codec: true
-}) {}
+) {}
 
 export class PersonListDto extends createZodDto(z.object({
   data: z.array(PersonDto.schema),
-}).meta({ id: 'PersonList' }), { codec: true }) {} 
+}).meta({ id: 'PersonList' })) {}
 
-export class GetPersonResponse extends createZodDto(z.object({ data: PersonDto.schema }), { codec: true }) {}
+export class GetPersonResponse extends createZodDto(z.object({ data: PersonDto.schema })) {}
 
 export class PersonFilterDto extends createZodDto(z.object({
   filter: z.object({
     name: z.string().optional().describe('Filter by name'),
   }).optional(),
-}), { codec: true }) {}
+})) {}
 
 export class GetPersonParams extends createZodDto(z.object({ id: z.string().transform(val => parseInt(val)) })) {}
 

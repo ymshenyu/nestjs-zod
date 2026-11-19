@@ -1,14 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.set('query parser', 'extended');
 
-  const openApiDoc = SwaggerModule.createDocument(app, 
+  const openApiDoc = SwaggerModule.createDocument(app,
     new DocumentBuilder()
       .setTitle('Example API')
       .setDescription('Example API description')
@@ -16,7 +15,7 @@ async function bootstrap() {
       .build()
   );
 
-  SwaggerModule.setup('api', app, cleanupOpenApiDoc(openApiDoc));
+  SwaggerModule.setup('api', app, openApiDoc);
 
   await app.listen(process.env.PORT ?? 3001);
 }
