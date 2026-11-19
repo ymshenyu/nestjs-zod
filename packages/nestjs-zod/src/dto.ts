@@ -1,406 +1,184 @@
-import { UnknownSchema } from './types';
-import type * as z3 from 'zod/v3';
-import {
-  toJSONSchema,
-  globalRegistry,
-  $ZodType,
-  JSONSchema,
-} from 'zod/v4/core';
-import { assert } from './assert';
-import {
-  DEFS_KEY,
-  EMPTY_TYPE_KEY,
-  PARENT_ADDITIONAL_PROPERTIES_KEY,
-  PARENT_HAS_REFS_KEY,
-  PARENT_ID_KEY,
-  UNWRAP_ROOT_KEY,
-  SELF_REQUIRED_KEY,
-  PARENT_METADATA_KEY,
-  USES_THREE_POINT_ONE_SYNTAX_KEY,
-  TYPE_ARRAY_KEY,
-} from './const';
-import { walkJsonSchema } from './utils';
-import { zodV3ToOpenAPI } from './zodV3ToOpenApi';
-import { ioSymbol } from './symbols';
+import { ApiExtraModels, ApiSchema, getSchemaPath } from '@nestjs/swagger';
+import { z } from 'zod';
+import type { $ZodType, JSONSchema } from 'zod/v4/core';
 
-export interface ZodDto<
-  TSchema extends UnknownSchema = UnknownSchema,
-  TCodec extends boolean = boolean,
-> {
-  new (): ReturnType<TSchema['parse']>;
-  isZodDto: true;
-  schema: TSchema;
-  codec: TCodec;
-  [ioSymbol]?: 'input' | 'output';
-  create(input: unknown): ReturnType<TSchema['parse']>;
-  Output: ZodDto<UnknownSchema, TCodec>;
-  _OPENAPI_METADATA_FACTORY(): unknown;
+type Target = 'openapi-3.0' | 'draft-2020-12';
+
+export interface ZodDto<TSchema extends $ZodType = $ZodType> {
+  new (): z.output<TSchema>;
+  readonly isZodDto: true;
+  readonly schema: TSchema;
+  readonly Output: ZodDto<TSchema>;
+  create(input: unknown): z.output<TSchema>;
 }
 
-export function createZodDto<
-  TSchema extends UnknownSchema,
-  TCodec extends boolean = false,
->(schema: TSchema, options?: { codec: TCodec }) {
-  class AugmentedZodDto {
-    public static readonly isZodDto = true;
-    public static readonly schema = schema;
-    public static readonly codec = options?.codec || false;
-    public static readonly [ioSymbol] = 'input';
+export function createZodDto<TSchema extends $ZodType>(
+  schema: TSchema,
+  { target = 'openapi-3.0' }: { target?: Target } = {},
+): ZodDto<TSchema> {
+  const outputModels = new WeakMap<object, ZodDto<TSchema>>();
+  return createModel('input');
 
-    public static create(input: unknown) {
-      return this.schema.parse(input);
+  function createModel(io: 'input' | 'output', name?: string): ZodDto<TSchema> {
+    let openApi: ReturnType<typeof createOpenApiModel> | undefined;
+    let conversionError: unknown;
+    try {
+      openApi = createOpenApiModel(schema, target, io);
+    } catch (error) {
+      conversionError = error;
     }
 
-    static get Output() {
-      assert(
-        '_zod' in schema,
-        'Output DTOs can only be created from zod v4 schemas',
-      );
+    const registered = new WeakSet<object>();
+    class Dto {
+      static readonly isZodDto = true;
+      static readonly schema = schema;
 
-      class AugmentedZodDto {
-        public static readonly isZodDto = true;
-        public static readonly schema = schema;
-        public static readonly [ioSymbol] = 'output';
-
-        public static create(input: unknown) {
-          return this.schema.parse(input);
-        }
-
-        public static _OPENAPI_METADATA_FACTORY() {
-          return openApiMetadataFactory({ schema: this.schema, io: 'output' });
-        }
+      static create(input: unknown) {
+        return z.parse(schema, input);
       }
 
-      Object.defineProperty(AugmentedZodDto, 'name', {
-        value: `${this.name}_Output`,
-      });
+      static get Output(): ZodDto<TSchema> {
+        if (io === 'output') return this as unknown as ZodDto<TSchema>;
+        let output = outputModels.get(this);
+        if (!output) {
+          output = createModel('output', this.name + '_Output');
+          outputModels.set(this, output);
+        }
+        return output;
+      }
 
-      return AugmentedZodDto;
+      static _OPENAPI_METADATA_FACTORY() {
+        if (!openApi) throw conversionError;
+        const { model, componentName, resolveRefs } = openApi;
+        if (model.type !== 'object') {
+          throw new Error(
+            'Automatic Swagger documentation requires an object DTO. Pass other roots as an explicit Swagger schema.',
+          );
+        }
+        if (registered.has(this)) return {};
+        const name = componentName ?? this.name;
+        // Swagger 12 merges class schema metadata after its reflected properties.
+        ApiSchema({ ...resolveRefs(model, name), name })(this);
+        registered.add(this);
+        return {};
+      }
     }
 
-    public static _OPENAPI_METADATA_FACTORY() {
-      return openApiMetadataFactory({ schema: this.schema, io: 'input' });
-    }
+    if (name) Object.defineProperty(Dto, 'name', { value: name });
+    if (openApi?.components.length) ApiExtraModels(...openApi.components)(Dto);
+    return Dto as unknown as ZodDto<TSchema>;
   }
-
-  return AugmentedZodDto as unknown as ZodDto<TSchema, TCodec>;
 }
 
-function openApiMetadataFactory({
-  schema,
-  io,
-}: {
-  schema:
-    | UnknownSchema
-    | z3.ZodTypeAny
-    | ($ZodType & { parse: (input: unknown) => unknown });
-  io: 'input' | 'output';
-}) {
-  if (!('_zod' in schema) && '_def' in schema && io === 'output') {
-    throw new Error('[nestjs-zod] Output schemas are not supported for zod@v3');
-  }
+let anonymousComponentSequence = 0;
 
-  if (!('_zod' in schema) && !('_def' in schema)) {
-    return {};
-  }
-
+function createOpenApiModel(
+  schema: $ZodType,
+  target: Target,
+  io: 'input' | 'output',
+) {
+  const namedIds = new Set<string>();
   const {
+    $schema: _dialect,
     $defs,
-    $schema: _$schema,
-    ...generatedJsonSchema
-  } = generateJsonSchema(schema, io);
-
-  const zodId = '_zod' in schema ? globalRegistry.get(schema)?.id : undefined;
-  const rootId = zodId && io === 'output' ? `${zodId}_Output` : zodId;
-
-  /**
-   * nestjs expects us to return a record of properties
-   *
-   * However, in some cases, we can't return a record of properties.  For
-   * example, arrays, intersections, and unions can not be represented like this
-   *
-   * As a workaround, we wrap the schema in a "root" object.  Then in the
-   * `cleanupOpenApiDoc` function, we unwrap the root object.
-   */
-  const jsonSchema: JSONSchema.JSONSchema & {
-    type: 'object';
-    required?: string[];
-    properties?: Record<string, Record<string, unknown>>;
-  } = !isObjectTypeWithProperties(generatedJsonSchema)
-    ? {
-        type: 'object' as const,
-        title: generatedJsonSchema.title,
-        properties: {
-          root: {
-            ...generatedJsonSchema,
-            [UNWRAP_ROOT_KEY]: true,
-          },
-        },
-        $defs,
+    definitions,
+    ...inlineModel
+  } = z.toJSONSchema(schema, {
+    target,
+    io,
+    override({ zodSchema, jsonSchema }) {
+      // Zod also emits these JSON Schema keywords for the OpenAPI 3.0 target.
+      if (target === 'openapi-3.0') {
+        delete jsonSchema.contentEncoding;
+        delete jsonSchema.contentMediaType;
       }
-    : {
-        ...generatedJsonSchema,
-        $defs,
-      };
-
-  const { hasRefs, usesThreePointOneSyntax } = getSchemaMetadata(jsonSchema);
-
-  const properties: Record<string, unknown> = {};
-  for (const [propertyKey, propertySchema] of Object.entries(
-    jsonSchema.properties || {},
-  )) {
-    const newPropertySchema: Record<string, unknown> = {
-      // TODO: figure out why this fails at compile time
-      ...(propertySchema as Record<string, unknown>),
-
-      // Note: nestjs throws the following error message if `type` is
-      // missing on the schema:
-      //
-      // > A circular dependency has been detected...
-      //
-      // This error message is not accurate.  There is no circular
-      // dependency.  However, as a workaround, we need to set `type` to
-      // an empty string so nestjs does not throw an error
-      //
-      // An empty string is not a valid value for `type` as per jsonSchema
-      // standards, but we clean this up and remove this field in
-      // `cleanupOpenApiDoc`
-      type: typeof propertySchema.type === 'string' ? propertySchema.type : '',
-    };
-
-    // zod >= 4.5 emits unions of bare types (e.g. `z.string().nullable()`) as
-    // `type: ['string', 'null']`.  nestjs/swagger interprets an array-valued
-    // `type` as its `[String]` nested-array shorthand and would turn this
-    // into `{ type: 'array', items: { type: 'string' } }`.  So we stash the
-    // array here and restore it in `cleanupOpenApiDoc`
-    if (Array.isArray(propertySchema.type)) {
-      newPropertySchema[TYPE_ARRAY_KEY] = propertySchema.type;
-    }
-
-    if (usesThreePointOneSyntax) {
-      newPropertySchema[USES_THREE_POINT_ONE_SYNTAX_KEY] = true;
-    }
-
-    if (hasRefs) {
-      newPropertySchema[PARENT_HAS_REFS_KEY] = true;
-    }
-
-    // Add a marker so we know to clean this up.  We could just remove any
-    // empty type, but we really only want to remove the empty types we
-    // added
-    if (typeof propertySchema.type !== 'string') {
-      newPropertySchema[EMPTY_TYPE_KEY] = true;
-    }
-
-    // nestjs expects us to return a record of properties, instead of a
-    // proper jsonschema.  Because nestjs doesn't expect a jsonschema, the
-    // `required: ["field1", "field2"]` mechanism isn't available to us.
-    //
-    // As an apparent (and undocumented) workaround, nestjs expects you to
-    // return `selfRequired: true` (for objects) or `required: true` (for
-    // non-objects) if the field is required
-    const required = Boolean(
-      'required' in jsonSchema && jsonSchema.required?.includes(propertyKey),
-    );
-    if (newPropertySchema.type === 'object') {
-      newPropertySchema.selfRequired = required;
-      // This is needed for parameters that are objects.  In those cases, nestjs
-      // has some buggy behavior regarding `required`.  nestjs makes `required`
-      // always `true` (never false), OR an array of fields that are required
-      // Also, `selfRequired` is not present in the OpenAPI document for some
-      // reason, so we need our own field here...  ¯\_(ツ)_/¯
-      newPropertySchema[SELF_REQUIRED_KEY] = required;
-    } else {
-      newPropertySchema.required = required;
-    }
-
-    // nestjs expects us to return a record of properties, instead of a
-    // proper jsonschema.  This means the $defs object on the root schema
-    // is lost. Here, we add $defs to each property instead, under a custom
-    // field name
-    if (jsonSchema.$defs) {
-      newPropertySchema[DEFS_KEY] = jsonSchema.$defs;
-    }
-
-    // nestjs expects us to return a record of properties, instead of a
-    // proper jsonschema.  This means `id` is lost.  So here, we add it
-    // back to each property, under a custom field name
-    if (rootId) {
-      newPropertySchema[PARENT_ID_KEY] = rootId;
-    }
-
-    if (typeof jsonSchema.additionalProperties === 'boolean') {
-      newPropertySchema[PARENT_ADDITIONAL_PROPERTIES_KEY] =
-        jsonSchema.additionalProperties;
-    }
-
-    // nestjs expects us to return a record of properties, instead of a
-    // proper jsonschema.  This means metadata (like description, example, etc.)
-    // from .meta() is lost. So here, we add them to each property, under a
-    // custom field name
-    const reservedKeys = new Set([
-      'type',
-      'properties',
-      'required',
-      'additionalProperties',
-      '$defs',
-      'id',
-    ]);
-    const parentMetadata: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(jsonSchema)) {
-      if (!reservedKeys.has(key) && value !== undefined) {
-        parentMetadata[key] = value;
-      }
-    }
-    if (Object.keys(parentMetadata).length > 0) {
-      newPropertySchema[PARENT_METADATA_KEY] = parentMetadata;
-    }
-
-    properties[propertyKey] = newPropertySchema;
-  }
-
-  return properties;
-}
-
-function generateJsonSchema(
-  schema: z3.ZodTypeAny | ($ZodType & { parse: (input: unknown) => unknown }),
-  io: 'input' | 'output',
-) {
-  const generatedJsonSchema =
-    '_zod' in schema
-      ? toJSONSchema(schema, {
-          io,
-        })
-      : zodV3ToOpenAPI(schema);
-
-  const $defs =
-    '$defs' in generatedJsonSchema && generatedJsonSchema.$defs
-      ? generatedJsonSchema.$defs
-      : undefined;
-
-  // @ts-expect-error FIXME
-  const newSchema = cleanupRefs(generatedJsonSchema, io);
-
-  const newDefs: Record<string, JSONSchema.BaseSchema> = {};
-  Object.entries($defs || {}).forEach(([defKey, defValue]) => {
-    const newKey = io === 'output' ? `${defKey}_Output` : defKey;
-    if (newDefs[newKey]) {
-      throw new Error(`[nestjs-zod] Duplicate id in $defs: ${newKey}`);
-    }
-    newDefs[newKey] = cleanupRefs(defValue, io);
-  });
-
-  if ($defs) {
-    newSchema.$defs = newDefs;
-  }
-
-  // zod >= 4.5 extracts a named root (`schema.meta({ id })`) into `$defs`
-  // and leaves the root as `{ $ref: '#/$defs/<id>' }`.  nestjs/swagger needs
-  // real properties, so splice that def back in as the root (the pre-4.5
-  // shape).  `$ref`s have already been `_Output`-suffixed, so the def key
-  // matches the rewritten ref.
-  const rootRef = newSchema.$ref;
-  if (
-    typeof rootRef === 'string' &&
-    rootRef.startsWith('#/$defs/') &&
-    newSchema.$defs
-  ) {
-    const defKey = rootRef.replace('#/$defs/', '');
-    const def = newSchema.$defs[defKey];
-    if (def) {
-      delete newSchema.$defs[defKey];
-      const remainingDefs = newSchema.$defs;
-      delete newSchema.$ref;
-      delete newSchema.$defs;
-
-      Object.assign(newSchema, def);
-
-      if (Object.keys(remainingDefs).length > 0) {
-        newSchema.$defs = remainingDefs;
-      }
-    }
-  }
-
-  return newSchema;
-}
-
-/**
- * Suffixes refs with `_Output` if `io` is `output`
- *
- * Also removes the `id` field from the schema, since this is not a valid
- * openapi field.  Some earlier versions of zod 4 included `id`
- */
-function cleanupRefs(
-  rootSchema: JSONSchema.JSONSchema,
-  io: 'input' | 'output',
-) {
-  return walkJsonSchema(
-    rootSchema,
-    (schema) => {
-      if (schema.$ref && schema.$ref.startsWith('#/$defs/')) {
-        const defKey = schema.$ref.replace('#/$defs/', '');
-        if (defKey && io === 'output') {
-          schema.$ref = `#/$defs/${defKey}_Output`;
-        }
-      }
-      if ('id' in schema) {
-        delete schema['id'];
-      }
-      return schema;
+      const id = z.globalRegistry.get(zodSchema)?.id;
+      if (id) namedIds.add(id);
     },
-    { clone: true },
-  );
-}
-
-function getSchemaMetadata(jsonSchema: JSONSchema.BaseSchema) {
-  let hasRefs = false;
-  let usesThreePointOneSyntax = false;
-  walkJsonSchema(jsonSchema, (schema) => {
-    if (
-      schema.type === 'null' ||
-      // OpenAPI 3.0 requires `type` to be a single string
-      Array.isArray(schema.type) ||
-      schema.const ||
-      schema.id ||
-      'propertyNames' in schema ||
-      typeof schema.exclusiveMinimum === 'number' ||
-      typeof schema.exclusiveMaximum === 'number'
-    ) {
-      usesThreePointOneSyntax = true;
-    }
-    if (schema.$ref) {
-      hasRefs = true;
-    }
-    return schema;
   });
 
-  return {
-    hasRefs,
-    usesThreePointOneSyntax,
-  };
+  const definitionsById = new Map(Object.entries($defs ?? definitions ?? {}));
+  const id = z.globalRegistry.get(schema)?.id;
+  const model = (id && definitionsById.get(id)) || inlineModel;
+  const suffix = io === 'output' ? '_Output' : '';
+  const names = new Map<string, string>();
+  for (const key of definitionsById.keys()) {
+    names.set(
+      key,
+      key === id || namedIds.has(key)
+        ? key + suffix
+        : '__ZodSchema_' + ++anonymousComponentSequence,
+    );
+  }
+
+  let componentName = id ? id + suffix : undefined;
+  const components = [];
+  for (const [key, definition] of definitionsById) {
+    if (key === id) continue;
+    const name = names.get(key)!;
+    class Component {}
+    const options = {
+      type: undefined,
+      properties: undefined,
+      ...resolveRefs(definition),
+      name,
+    };
+    ApiSchema(options)(Component);
+    components.push(Component);
+  }
+
+  return { model, componentName, components, resolveRefs };
+
+  function resolveRefs(value: JSONSchema.BaseSchema, rootName?: string) {
+    const result = structuredClone(value);
+    visitSchemas(result, (node) => {
+      const ref = node.$ref;
+      if (typeof ref !== 'string') return;
+      if (ref === '#') {
+        const name =
+          rootName ??
+          (componentName ??= '__ZodSchema_' + ++anonymousComponentSequence);
+        node.$ref = getSchemaPath(name);
+        return;
+      }
+      const match = /^#\/(?:\$defs|definitions)\/([^/]+)(.*)$/.exec(ref);
+      if (!match) return;
+      const name = names.get(match[1].replace(/~1/g, '/').replace(/~0/g, '~'));
+      if (name) node.$ref = getSchemaPath(name) + match[2];
+    });
+    return result;
+  }
 }
 
-export function isZodDto(
-  metatype: unknown,
-): metatype is ZodDto<UnknownSchema, boolean> {
-  return Boolean(
-    metatype &&
-    (typeof metatype === 'object' || typeof metatype === 'function') &&
-    'isZodDto' in metatype &&
-    metatype.isZodDto,
-  );
-}
-
-function isObjectTypeWithProperties(
-  jsonSchema: JSONSchema.BaseSchema,
-): jsonSchema is JSONSchema.BaseSchema & {
-  type: 'object';
-  required?: string[];
-  properties?: Record<string, Record<string, unknown>>;
-} {
-  return (
-    jsonSchema.type === 'object' &&
-    !!jsonSchema.properties &&
-    Object.keys(jsonSchema.properties).length > 0
-  );
+// Walk schema positions so examples and other metadata are left intact.
+function visitSchemas(
+  value: unknown,
+  visit: (schema: Record<string, unknown>) => void,
+) {
+  if (!value || typeof value !== 'object') return;
+  const schema = value as Record<string, unknown>;
+  visit(schema);
+  for (const key of ['properties', 'patternProperties', 'dependentSchemas']) {
+    const children = schema[key];
+    if (children && typeof children === 'object') {
+      Object.values(children).forEach((child) => visitSchemas(child, visit));
+    }
+  }
+  for (const key of [
+    'items',
+    'prefixItems',
+    'additionalProperties',
+    'propertyNames',
+    'oneOf',
+    'anyOf',
+    'allOf',
+    'not',
+  ]) {
+    const child = schema[key];
+    if (Array.isArray(child)) {
+      child.forEach((item) => visitSchemas(item, visit));
+    } else {
+      visitSchemas(child, visit);
+    }
+  }
 }

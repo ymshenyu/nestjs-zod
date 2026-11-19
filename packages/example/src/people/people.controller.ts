@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Query, Param, NotFoundException } from '@nestjs/common';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ZodResponse } from 'nestjs-zod';
+import { Controller, Get, Post, Body, Query, Param, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { z } from 'zod';
+import type { SchemaObject } from '@nestjs/swagger';
 import { CreatePersonFormDto, PersonDto, PersonListDto, PersonFilterDto, Person, GetPersonParams, GetPersonResponse } from './people.dto';
 
 @ApiTags('People')
@@ -61,36 +62,42 @@ export class PeopleController {
   ];
 
   @Get()
-  @ZodResponse({ type: PersonListDto, description: 'List of all people' })
-  getPeople(@Query() query: PersonFilterDto) {
-    return {
+  @ApiOkResponse({ type: PersonListDto, description: 'List of all people' })
+  @ApiQuery({ name: 'filter', required: false, schema: z.toJSONSchema(PersonFilterDto.schema.shape.filter, { target: 'openapi-3.0', io: 'input' }) as SchemaObject })
+  getPeople(@Query() input: PersonFilterDto) {
+    const result = PersonFilterDto.schema.safeParse(input);
+    if (!result.success) throw new BadRequestException(result.error.issues);
+    const query = result.data;
+    return PersonListDto.schema.encode({
       data: this.mockPeople.filter(person => query.filter?.name ? person.name.includes(query.filter.name) : true),
-    };
+    });
   }
 
   @Get(':id')
-  @ZodResponse({ type: GetPersonResponse, description: 'List of all people' })
-  getPerson(@Param() { id }: GetPersonParams) {
+  @ApiOkResponse({ type: GetPersonResponse, description: 'A person' })
+  @ApiParam({ name: 'id', type: String })
+  getPerson(@Param('id') rawId: string) {
+    const { id } = GetPersonParams.create({ id: rawId });
     const person = this.mockPeople.find(person => person.id === id);
     if (!person) {
       throw new NotFoundException('Person not found');
     }
-    return {
-      data: person,
-    };
+    return GetPersonResponse.schema.encode({ data: person });
   }
 
   @Post()
-  @ZodResponse({ type: PersonDto, description: 'Person created successfully' })
-  createPerson(@Body() createPersonDto: CreatePersonFormDto) {
+  @ApiCreatedResponse({ type: PersonDto, description: 'Person created successfully' })
+  createPerson(@Body() input: CreatePersonFormDto) {
+    const result = CreatePersonFormDto.schema.safeParse(input);
+    if (!result.success) throw new BadRequestException(result.error.issues);
     const newPerson = {
-      ...createPersonDto,
+      ...result.data,
       id: Math.floor(Math.random() * 1000) + 4,
       created: new Date()
     };
 
     this.mockPeople.push(newPerson);
 
-    return newPerson;
+    return PersonDto.schema.encode(newPerson);
   }
-} 
+}

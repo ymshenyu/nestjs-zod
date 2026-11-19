@@ -1,4 +1,4 @@
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto } from '@ymshenyu/nestjs-zod';
 import { z } from 'zod';
 
 export class StarshipDto extends createZodDto(z.object({
@@ -28,4 +28,4 @@ export class StarshipListDto extends createZodDto(z.object({
 
 export type Starship = z.infer<typeof StarshipDto.schema>;
 export type CreateStarship = z.infer<typeof CreateStarshipFormDto.schema>;
-export type StarshipList = z.infer<typeof StarshipListDto.schema>; 
+export type StarshipList = z.infer<typeof StarshipListDto.schema>;
