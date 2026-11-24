@@ -56,7 +56,7 @@
     "typescript": "7.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.12",
-    "zod": "4.6.6"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@nestjs/swagger": "^12.0.0",
