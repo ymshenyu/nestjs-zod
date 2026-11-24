@@ -1,2 +1,9 @@
 packages:
   - 'packages/*'
+
+overrides:
+  # The OpenAPI tests do not use the Swagger TypeScript plugin.
+  "@nestjs/swagger@12.1.2>typescript": "-"
+
+allowBuilds:
+  '@scarf/scarf': false

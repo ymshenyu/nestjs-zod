@@ -1,52 +1,67 @@
 categories:
   - title: '⚠️ Breaking changes'
-    label: 'BREAKING CHANGES'
+    when:
+      label: 'BREAKING CHANGES'
 
   - title: '🚀 Features'
-    label: 'feature'
+    when:
+      label: 'feature'
 
   - title: '🛠 Refactor'
-    label: 'refactor'
+    when:
+      label: 'refactor'
 
   - title: '🐛 Bug Fixes'
-    label: 'fix'
+    when:
+      label: 'fix'
 
   - title: '💅 Style'
-    label: 'style'
+    when:
+      label: 'style'
 
   - title: '🧰 Maintenance'
-    labels:
-      - 'chore'
-      - 'dependencies'
-      - 'ci'
+    when:
+      labels:
+        - 'chore'
+        - 'dependencies'
+        - 'ci'
 
   - title: '📚 Documentation'
-    label: 'documentation'
+    when:
+      label: 'documentation'
 
   - title: '🧪 Tests'
-    label: 'tests'
+    when:
+      label: 'tests'
 
   - title: '🏎 Optimizations'
-    label: 'optimizations'
+    when:
+      label: 'optimizations'
 
-version-resolver:
-  major:
-    labels:
-      - 'BREAKING CHANGES'
-  minor:
-    labels:
-      - 'feature'
-      - 'enhancement'
-      - 'dependencies'
-  patch:
-    labels:
-      - 'fix'
-      - 'bugfix'
-      - 'bug'
-      - 'optimizations'
-      - 'refactor'
-      - 'style'
-  default: patch
+  - type: version-resolver
+    semver-increment: major
+    when:
+      labels:
+        - 'BREAKING CHANGES'
+  - type: version-resolver
+    semver-increment: minor
+    when:
+      labels:
+        - 'feature'
+        - 'enhancement'
+        - 'dependencies'
+  - type: version-resolver
+    semver-increment: patch
+    when:
+      labels:
+        - 'fix'
+        - 'bugfix'
+        - 'bug'
+        - 'optimizations'
+        - 'refactor'
+        - 'style'
+  - type: version-resolver
+    semver-increment: patch
 
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'

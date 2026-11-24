@@ -2,31 +2,18 @@
   "name": "@ymshenyu/nestjs-zod",
   "description": "Zod 4 class DTOs with native JSON Schema conversion for NestJS",
   "version": "0.0.0-set-by-ci",
-  "main": "./dist/index.cjs",
+  "type": "module",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./dto": {
-      "import": {
-        "types": "./dist/dto.d.mts",
-        "default": "./dist/dto.mjs"
-      },
-      "require": {
-        "types": "./dist/dto.d.cts",
-        "default": "./dist/dto.cjs"
-      }
+      "types": "./dist/dto.d.ts",
+      "default": "./dist/dto.js"
     }
   },
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.cts",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -46,35 +33,30 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "lint": "eslint",
+    "test:package": "node --test test/package-smoke.mjs",
+    "lint": "oxlint src test",
     "typecheck": "tsc --noEmit",
-    "lint:fix": "eslint  --fix",
-    "format:write": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\""
+    "lint:fix": "oxlint --fix src test",
+    "format:write": "oxfmt src test",
+    "format:check": "oxfmt --check src test"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
+    "@nestjs/platform-express": "^12.0.0",
     "@nestjs/swagger": "^12.0.0",
     "@nestjs/testing": "^12.6.0",
-    "@types/node": "^25.9.1",
-    "eslint": "^10.15.0",
-    "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.14.0",
-    "jiti": "^2.7.0",
-    "prettier": "^3.10.1",
+    "@types/node": "^26.6.6",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "tsdown": "^0.22.3",
-    "typescript": "5.9.3",
-    "typescript-eslint": "^8.67.0",
-    "zod": "4.5.0",
-    "@nestjs/platform-express": "^12.0.0",
+    "typescript": "7.0.2",
+    "vite": "^8.0.0",
     "vitest": "^4.1.12",
-    "vite": "^8.0.0"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "@nestjs/swagger": "^12.0.0",

@@ -9,7 +9,6 @@ on:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
         type: string
-        pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
 permissions:
   id-token: write # Required for OIDC
@@ -19,26 +18,26 @@ jobs:
   publish-npm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          version: 9
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
+          node-version-file: '.node-version'
           registry-url: https://registry.npmjs.org
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @ymshenyu/nestjs-zod build
       - run: pnpm --filter @ymshenyu/nestjs-zod test
+      - run: pnpm --filter @ymshenyu/nestjs-zod test:package
       - run: pnpm --filter @ymshenyu/nestjs-zod typecheck
-      - run: pnpm --filter example-star-wars build
-      - run: pnpm --filter example-star-wars test
-      - run: pnpm --filter example-swc build
       - name: Set version and copy docs
         env:
           RELEASE_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
         run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Enter a version such as 1.0.0"
+            exit 1
+          fi
           cp README.md LICENSE packages/nestjs-zod/
           cd packages/nestjs-zod
           npm version "$RELEASE_VERSION" --allow-same-version --no-git-tag-version --ignore-scripts
@@ -48,7 +47,6 @@ jobs:
           NPM_STAGE_TOKEN: ${{ secrets.NPM_STAGE_TOKEN }}
         run: |
           if [[ -n "$NPM_STAGE_TOKEN" ]]; then
-            npm install --global npm@^11.15.0
             NODE_AUTH_TOKEN="$NPM_STAGE_TOKEN" npm stage publish --access public
           else
             npm publish --access public

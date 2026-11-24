@@ -9,8 +9,8 @@ import {
 import { Test } from '@nestjs/testing';
 import { expect, test } from 'vitest';
 import { z } from 'zod';
-import { PREFIX } from '../const';
-import { cleanupOpenApiDoc, createZodDto } from '../index';
+import { PREFIX } from '../const.js';
+import { cleanupOpenApiDoc, createZodDto } from '../index.js';
 
 test.each([
   {

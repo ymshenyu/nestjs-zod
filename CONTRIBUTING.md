@@ -26,12 +26,7 @@ The following steps will get you setup to contribute changes to this repo:
 
 ### Directory structure
 
-This repository is a monorepo and includes several packages under the `packages` directory:
-1. `cli` - This is a command line utility that can be used to automatically setup `nestjs-zod`
-2. `example` - A basic example of using `nestjs-zod`
-3. `example-dual-zod` - An example that uses both `zod` v4 and v3
-4. `nestjs-zod` - The main package
-5. `z` - Deprecated package that should not need any changes
+The published package lives in `packages/nestjs-zod`. Its build, tests, and package entry check run from the workspace root as described in the [README](README.md#develop-and-release).
 
 ### Tests
 

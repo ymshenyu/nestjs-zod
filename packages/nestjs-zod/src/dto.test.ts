@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { z } from 'zod';
 import * as zMini from 'zod/v4-mini';
-import { createZodDto, isZodDto } from './index';
+import { createZodDto, isZodDto } from './index.js';
 
 test('creates a typed DTO and parses explicitly', () => {
   const schema = z.object({ count: z.coerce.number() });

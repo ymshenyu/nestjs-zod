@@ -1,6 +1,6 @@
 # @ymshenyu/nestjs-zod
 
-A DTO-only fork of [nestjs-zod](https://github.com/BenLorantfy/nestjs-zod) for Zod 4.5+, NestJS 12, and `@nestjs/swagger` 12 using Zod's native `toJSONSchema`. It supports ESM and CommonJS on Node.js 20.19+ or 22.12+.
+A DTO-only fork of [nestjs-zod](https://github.com/BenLorantfy/nestjs-zod) for Zod 4.5+, NestJS 12, and `@nestjs/swagger` 12 using Zod's native `toJSONSchema`. It ships as ESM on Node.js 20.19+ or 22.12+.
 
 ## Install
 
@@ -91,7 +91,9 @@ This fork retains the upstream MIT license and authorship.
 
 ## Develop and release
 
-Run `pnpm install --frozen-lockfile`, `pnpm --filter @ymshenyu/nestjs-zod build`, and `pnpm --filter @ymshenyu/nestjs-zod test` from the repository root. The package uses Vitest and includes NestJS Swagger integration tests for both OpenAPI targets.
+Development and release CI use the Node.js LTS version pinned in `.node-version` and the pnpm version in the root `package.json`. Builds and type checks use native TypeScript 7. Oxlint checks source code and Oxfmt formats it.
+
+Run `pnpm install --frozen-lockfile`, `pnpm --filter @ymshenyu/nestjs-zod build`, and `pnpm --filter @ymshenyu/nestjs-zod test` from the repository root. The package uses Vitest and includes NestJS Swagger integration tests for both OpenAPI targets. Run `pnpm --filter @ymshenyu/nestjs-zod test:package` after building to verify the ESM package entries.
 
 Publishing a GitHub Release or running the `Release` workflow manually (`workflow_dispatch`) triggers `.github/workflows/release.yml`. If the repository Actions secret `NPM_STAGE_TOKEN` is set, the workflow submits a staged release via `npm stage publish --access public` for manual 2FA approval on npm; once `NPM_STAGE_TOKEN` is removed and npm Trusted Publishing (OIDC) is configured for `ymshenyu/nestjs-zod` and `release.yml`, it runs `npm publish --access public` directly.
 

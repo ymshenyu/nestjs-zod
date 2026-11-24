@@ -1,2 +1,7 @@
-export { createZodDto, isZodDto, type OpenApiTarget, type ZodDto } from './dto';
-export { cleanupOpenApiDoc } from './cleanupOpenApiDoc';
+export {
+  createZodDto,
+  isZodDto,
+  type OpenApiTarget,
+  type ZodDto,
+} from './dto.js';
+export { cleanupOpenApiDoc } from './cleanupOpenApiDoc.js';

@@ -11,13 +11,13 @@ import {
   SELF_REQUIRED_KEY,
   TYPE_KEY,
   UNWRAP_ROOT_KEY,
-} from './const';
+} from './const.js';
 import {
   decodeJsonPointerSegment,
   encodeJsonPointerSegment,
   fixAllRefs,
   walkJsonSchema,
-} from './utils';
+} from './utils.js';
 
 type DtoSchema = NonNullable<
   NonNullable<OpenAPIObject['components']>['schemas']
@@ -353,7 +353,8 @@ function cleanupSchema({
   }
 
   const rootProp = newOpenapiSchema.properties?.root as
-    Record<string, unknown> | undefined;
+    | Record<string, unknown>
+    | undefined;
   if (rootProp && UNWRAP_ROOT_KEY in rootProp) {
     const replaceRoot = rootProp[UNWRAP_ROOT_KEY];
     delete rootProp[UNWRAP_ROOT_KEY];

@@ -18,14 +18,10 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es6",
-    "declaration": true,
-    "declarationDir": "./dist",
-    "baseUrl": "./",
-    "outDir": "./dist",
-    "typeRoots": [
-      "./node_modules/@types"
-    ],
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "types": [
+      "node"
+    ]
   },
   "exclude": [
     "./node_modules",

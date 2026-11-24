@@ -10,12 +10,12 @@ import {
   SELF_REQUIRED_KEY,
   TYPE_KEY,
   UNWRAP_ROOT_KEY,
-} from './const';
+} from './const.js';
 import {
   decodeJsonPointerSegment,
   encodeJsonPointerSegment,
   walkJsonSchema,
-} from './utils';
+} from './utils.js';
 
 export type OpenApiTarget = 'openapi-3.0' | 'draft-2020-12';
 
@@ -226,7 +226,8 @@ function generateJsonSchema(
   });
 
   const rawDefs = ($defs ?? definitions) as
-    Record<string, JSONSchema.BaseSchema> | undefined;
+    | Record<string, JSONSchema.BaseSchema>
+    | undefined;
 
   const newSchema = normalizeRefs(root, io);
 
