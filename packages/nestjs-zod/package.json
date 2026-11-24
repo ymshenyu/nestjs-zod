@@ -55,7 +55,7 @@
     "rxjs": "^7.8.1",
     "typescript": "7.0.2",
     "vite": "^8.0.0",
-    "vitest": "^4.1.12",
+    "vitest": "^5.1.1",
     "zod": "4.6.6"
   },
   "peerDependencies": {
